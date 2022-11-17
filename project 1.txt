@@ -1,0 +1,26 @@
+declare
+        cursor data_cursor IS
+            select UC.TABLE_NAME, UCC.COLUMN_NAME
+            from user_cons_columns UCC, user_constraints UC
+            WHERE UCC.CONSTRAINT_NAME = UC.CONSTRAINT_NAME
+            and UC.CONSTRAINT_TYPE = 'P'
+            and UCC.COLUMN_NAME in (select column_name  from user_tab_columns where data_type = 'NUMBER');
+                    
+begin
+        FOR data_record IN data_cursor LOOP
+
+             EXECUTE IMMEDIATE 'CREATE SEQUENCE '||data_record.TABLE_NAME||'_SEQ
+                                              START WITH 600
+                                              INCREMENT BY 1
+                                              MAXVALUE 99999999
+                                              MINVALUE 1';
+                                                     
+             EXECUTE IMMEDIATE 'CREATE OR REPLACE TRIGGER '||data_record.table_name||'_TRG
+                                              BEFORE INSERT 
+                                              ON '||data_record.table_name||'
+                                              FOR EACH ROW
+                                              BEGIN
+                                                 :new.'||data_record.column_name||' := '||data_record.table_name||'_SEQ.nextval;
+                                              END;';                                                     
+        END LOOP;
+end;
